@@ -1,26 +1,71 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpStatus, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { Repository } from 'typeorm';
+import { Product } from './entities/product.entity'
 
 @Injectable()
 export class ProductsService {
-  create(createProductDto: CreateProductDto) {
-    return 'This action adds a new product';
+  constructor(
+    @InjectRepository(Product) 
+    private readonly productRepository: Repository<Product>,
+  ) {}
+
+  async create(createProductDto: CreateProductDto) {
+    const petsDetails = this.productRepository.create(createProductDto);
+    await this.productRepository.save(petsDetails);
+    return {
+      msg : "Data Added successfully",
+      status:HttpStatus.OK,
+      data:petsDetails
+    };
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findAll() {
+    let findAll = await this.productRepository.findAndCount();
+    console.log(findAll[1])
+    if(!findAll) throw new BadRequestException({ error : "Data Not Found" });
+    return {
+      status  : HttpStatus.OK,
+      messsage : "Data fetch successfully",
+      totalData : findAll && findAll.length ? findAll[1] :  0,
+      result : findAll && findAll[0]
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(id: any) {
+    const findOne = await this.productRepository.findOne({
+      where: {
+          id: id,
+      },
+    })
+    if(!findOne) throw new BadRequestException({ error : "Data Not Found" });
+    return {
+      status  : HttpStatus.OK,
+      messsage : "Data fetch successfully",
+      // totalData : findAll && findAll.length ? findAll.length :  0,
+      result : findOne
+    }
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+ async update(id: any, updateProductDto: UpdateProductDto) {
+    const result : any = await this.productRepository.update({id }, updateProductDto);
+    return {
+      status  : HttpStatus.OK,
+      messsage : "Data updated successfully",
+      totalData : result && result.length ? result.length :  0,
+      result : result
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: any) {
+    const result : any = await this.productRepository.delete(id);
+    return {
+      status  : HttpStatus.OK,
+      messsage : "Data deleted successfully",
+      totalData : result && result.length ? result.length :  0,
+      result : result
+    }
   }
 }
